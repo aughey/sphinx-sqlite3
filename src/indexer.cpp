@@ -540,7 +540,7 @@ CSphSource * SpawnSourcePgSQL ( const CSphConfigSection & hSource, const char * 
 #if USE_SQLITE
 CSphSource * SpawnSourceSQLite ( const CSphConfigSection & hSource, const char * sSourceName )
 {
-	assert ( hSource["type"]=="sqlite" );
+	assert ( hSource["type"]=="sqlite3" );
 
 	CSphSourceParams_SQLite tParams;
 	if ( !SqlParamsConfigure ( tParams, hSource, sSourceName ) )
@@ -661,7 +661,7 @@ CSphSource * SpawnSource ( const CSphConfigSection & hSource, const char * sSour
 
 
 	#if USE_SQLITE
-	if ( hSource["type"]=="sqlite")
+	if ( hSource["type"]=="sqlite3")
 		return SpawnSourceSQLite ( hSource, sSourceName );
 	#endif
 
