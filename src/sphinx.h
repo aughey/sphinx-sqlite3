@@ -1309,6 +1309,10 @@ protected:
 	virtual void			SqlDisconnect ();
 	virtual int				SqlNumFields();
 	virtual bool			SqlFetchRow();
+	virtual DWORD			SqlColumnLength ( int ) {
+          // This seems to work ok with PgSQL
+          return 0;
+        }
 	virtual const char *	SqlColumn ( int iIndex );
 	virtual const char *	SqlFieldName ( int iIndex );
 };
