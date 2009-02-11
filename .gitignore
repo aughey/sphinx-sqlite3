@@ -1,0 +1,15 @@
+*.o
+*.dist
+Makefile
+config.log
+config.status
+config/config.h
+config/stamp-h1
+libstemmer_c/.deps/
+src/.deps/
+src/indexer
+src/libsphinx.a
+src/search
+src/searchd
+src/spelldump
+src/tests
