@@ -99,6 +99,11 @@
 	#pragma message("Automatically linking with libmysql.lib")
 #endif
 
+#if ( USE_WINDOWS && USE_SQLITE )
+	#pragma comment(linker, "/defaultlib:sqlite.lib")
+	#pragma message("Automatically linking with sqlite.lib")
+#endif
+
 #if ( USE_WINDOWS && USE_PGSQL )
 	#pragma comment(linker, "/defaultlib:libpq.lib")
 	#pragma message("Automatically linking with libpq.lib")
@@ -18235,6 +18240,152 @@ bool CSphSource_MySQL::Setup ( const CSphSourceParams_MySQL & tParams )
 
 #endif // USE_MYSQL
 
+
+
+/////////////////////////////////////////////////////////////////////////////
+// SQLITE SOURCE
+/////////////////////////////////////////////////////////////////////////////
+
+#if USE_SQLITE
+
+CSphSource_SQLite::CSphSource_SQLite ( const char * sName )
+	: CSphSource_SQL ( sName )
+	, m_pSQLiteDriver( NULL )
+	, m_pSQLiteStatement( NULL )
+	, m_bError(false)
+{
+}
+
+
+void CSphSource_SQLite::SqlDismissResult ()
+{
+	if ( !m_pSQLiteStatement )
+		return;
+
+	sqlite3_reset(m_pSQLiteStatement);
+	m_pSQLiteStatement = NULL;
+	m_bError = false;
+}
+
+
+bool CSphSource_SQLite::SqlQuery ( const char * sQuery )
+{
+	if (sqlite3_prepare(m_pSQLiteDriver, sQuery, strlen(sQuery), &m_pSQLiteStatement, 0)!=0)
+	{
+		m_bError = true;
+		return false;
+	}
+
+	return sqlite3_step(m_pSQLiteStatement);
+}
+
+
+bool CSphSource_SQLite::SqlIsError ()
+{
+	// http://www.sqlite.org/capi3ref.html#sqlite3_errcode
+	// This is not reliable, we would have to store an internal error flag
+	//return sqlite3_errcode(m_pSQLiteDriver)!=SQLITE_OK;
+	return m_bError;
+}
+
+
+const char * CSphSource_SQLite::SqlError ()
+{
+	return sqlite3_errmsg(m_pSQLiteDriver);
+}
+
+
+bool CSphSource_SQLite::SqlConnect ()
+{
+
+	if (sqlite3_open(m_tParams.m_sDB.cstr(),&m_pSQLiteDriver)!=SQLITE_OK)
+	{
+		sqlite3_close(m_pSQLiteDriver);
+		m_pSQLiteDriver = 0;
+		m_bError = true;
+		return false;
+	}
+
+	bool bOptimised = true;
+	char * sPragma = 0;
+	
+	sPragma = "PRAGMA cache_size=4096;";
+	bOptimised &= ( sqlite3_exec(m_pSQLiteDriver, sPragma, 0, 0, 0)!=SQLITE_OK );
+
+	sPragma = "PRAGMA synchronous=OFF;";
+	bOptimised &= ( sqlite3_exec(m_pSQLiteDriver, sPragma, 0, 0, 0)!=SQLITE_OK );
+
+	sPragma = "PRAGMA locking_mode=EXCLUSIVE;";
+	bOptimised &= ( sqlite3_exec(m_pSQLiteDriver, sPragma, 0, 0, 0)!=SQLITE_OK );
+
+
+	return true;
+}
+
+
+void CSphSource_SQLite::SqlDisconnect ()
+{
+	if (m_pSQLiteDriver) sqlite3_close(m_pSQLiteDriver);
+	if (m_pSQLiteStatement) sqlite3_finalize(m_pSQLiteStatement);
+	m_bError = false;
+}
+
+
+int CSphSource_SQLite::SqlNumFields ()
+{
+	if ( !m_pSQLiteStatement )
+		return -1;
+
+	int columns = sqlite3_data_count(m_pSQLiteStatement);
+	return columns;
+}
+
+
+bool CSphSource_SQLite::SqlFetchRow ()
+{
+	if ( !m_pSQLiteStatement )
+		return NULL;
+
+	int state = sqlite3_step(m_pSQLiteStatement);
+	if (state != SQLITE_ROW && state != SQLITE_DONE)
+		m_bError = true;
+
+	return (state == SQLITE_ROW);
+}
+
+
+const char * CSphSource_SQLite::SqlColumn ( int iIndex )
+{
+	if ( !m_pSQLiteStatement )
+		return NULL;
+
+	return (const char*)sqlite3_column_text(m_pSQLiteStatement,iIndex);
+}
+
+
+const char * CSphSource_SQLite::SqlFieldName ( int iIndex )
+{
+	if ( !m_pSQLiteStatement )
+		return NULL;
+
+	return (const char*)sqlite3_column_name(m_pSQLiteStatement,iIndex);
+}
+
+
+bool CSphSource_SQLite::Setup ( const CSphSourceParams_SQLite & tParams )
+{
+	if ( !CSphSource_SQL::Setup ( tParams ) )
+		return false;
+
+	m_iFlags = tParams.m_iFlags;
+
+	return true;
+}
+
+#endif // USE_SQLITE
+
+
+	
 /////////////////////////////////////////////////////////////////////////////
 // PGSQL SOURCE
 /////////////////////////////////////////////////////////////////////////////

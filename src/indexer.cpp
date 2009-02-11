@@ -537,6 +537,26 @@ CSphSource * SpawnSourcePgSQL ( const CSphConfigSection & hSource, const char * 
 }
 #endif // USE_PGSQL
 
+#if USE_SQLITE
+CSphSource * SpawnSourceSQLite ( const CSphConfigSection & hSource, const char * sSourceName )
+{
+	assert ( hSource["type"]=="sqlite" );
+
+	CSphSourceParams_SQLite tParams;
+	if ( !SqlParamsConfigure ( tParams, hSource, sSourceName ) )
+		return NULL;
+
+	// This is not used, just here for an example...
+	LOC_GETI ( tParams.m_iFlags,			"sqlite_connect_flags" );
+
+	CSphSource_SQLite * pSrcSQLite = new CSphSource_SQLite ( sSourceName );
+	if ( !pSrcSQLite->Setup ( tParams ) )
+		SafeDelete ( pSrcSQLite );
+
+	return pSrcSQLite;
+}
+#endif // USE_SQLITE
+
 
 #if USE_MYSQL
 CSphSource * SpawnSourceMySQL ( const CSphConfigSection & hSource, const char * sSourceName )
@@ -637,6 +657,12 @@ CSphSource * SpawnSource ( const CSphConfigSection & hSource, const char * sSour
 	#if USE_PGSQL
 	if ( hSource["type"]=="pgsql")
 		return SpawnSourcePgSQL ( hSource, sSourceName );
+	#endif
+
+
+	#if USE_SQLITE
+	if ( hSource["type"]=="sqlite")
+		return SpawnSourceSQLite ( hSource, sSourceName );
 	#endif
 
 	#if USE_MYSQL

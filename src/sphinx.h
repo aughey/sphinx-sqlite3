@@ -27,6 +27,8 @@
 	#define USE_WINDOWS		0	/// whether to compile for Windows
 #endif
 
+#define USE_SQLITE		1	/// whether to compile SQLite support
+
 /////////////////////////////////////////////////////////////////////////////
 
 #include "sphinxstd.h"
@@ -44,6 +46,14 @@
 #if USE_PGSQL
 #include <libpq-fe.h>
 #endif
+
+#if USE_SQLITE
+struct sqlite3;
+struct sqlite3_stmt;
+#include <stdio.h>
+#include <sqlite3.h>
+#endif
+
 
 #if USE_WINDOWS
 #include <winsock2.h>
@@ -1263,6 +1273,46 @@ protected:
 };
 #endif // USE_MYSQL
 
+#ifdef USE_SQLITE
+/// SQLite source params
+struct CSphSourceParams_SQLite : CSphSourceParams_SQL
+{
+	int			m_iFlags;					///< connection flags
+
+	CSphSourceParams_SQLite () {}	///< ctor. sets defaults
+};
+
+
+/// SQLite source implementation
+/// multi-field plain-text documents fetched from given query
+struct CSphSource_SQLite : CSphSource_SQL
+{
+							//CSphSource_SQLite();
+							CSphSource_SQLite( const char * sName );
+
+	bool					Setup ( const CSphSourceParams_SQLite & tParams );
+
+protected:
+
+	sqlite3 *				m_pSQLiteDriver;
+	sqlite3_stmt *			m_pSQLiteStatement;
+	bool					m_bError;
+
+	int						m_iFlags;
+
+protected:
+	virtual void			SqlDismissResult ();
+	virtual bool			SqlQuery ( const char * sQuery );
+	virtual bool			SqlIsError ();
+	virtual const char *	SqlError ();
+	virtual bool			SqlConnect ();
+	virtual void			SqlDisconnect ();
+	virtual int				SqlNumFields();
+	virtual bool			SqlFetchRow();
+	virtual const char *	SqlColumn ( int iIndex );
+	virtual const char *	SqlFieldName ( int iIndex );
+};
+#endif
 
 #if USE_PGSQL
 /// PgSQL specific source params
