@@ -1297,6 +1297,7 @@ protected:
 	sqlite3 *				m_pSQLiteDriver;
 	sqlite3_stmt *			m_pSQLiteStatement;
 	bool					m_bError;
+        bool m_fetch_after_query;
 
 	int						m_iFlags;
 

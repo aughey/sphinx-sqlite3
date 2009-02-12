@@ -18276,7 +18276,9 @@ bool CSphSource_SQLite::SqlQuery ( const char * sQuery )
 		return false;
 	}
 
-	return sqlite3_step(m_pSQLiteStatement);
+	bool status = sqlite3_step(m_pSQLiteStatement);
+        m_fetch_after_query = true;
+        return status;
 }
 
 
@@ -18345,7 +18347,12 @@ bool CSphSource_SQLite::SqlFetchRow ()
 {
 	if ( !m_pSQLiteStatement )
 		return NULL;
-
+        // The query does a step to get the first row, so don't fetch twice
+        // right after a query.
+        if(m_fetch_after_query) {
+          m_fetch_after_query = false;
+          return true;
+        }
 	int state = sqlite3_step(m_pSQLiteStatement);
 	if (state != SQLITE_ROW && state != SQLITE_DONE)
 		m_bError = true;
